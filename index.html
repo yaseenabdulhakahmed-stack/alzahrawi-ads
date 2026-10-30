@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#C9A227">
+<title>الزهراوي للإعلانات — لوحة الإدارة</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
+  body{background:#f0f2f5;padding:16px}
+  .container{max-width:600px;margin:0 auto}
+  .card{background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.1);border-top:4px solid #C9A227}
+  h1{color:#075E54;margin-bottom:20px;text-align:center;font-size:22px}
+  h1 span{color:#C9A227}
+  h2{color:#128C7E;margin-bottom:12px;font-size:17px}
+  input,textarea,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit}
+  textarea{min-height:80px;resize:vertical}
+  button{background:#C9A227;color:#fff;border:none;font-weight:bold;cursor:pointer}
+  button:hover{background:#a8861f}
+  button.danger{background:#e74c3c}
+  button.danger:hover{background:#c0392b}
+  button.share{background:#25D366}
+  button.share:hover{background:#128C7E}
+  button.copy{background:#075E54}
+  .ad-item{background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:10px;border-right:4px solid #C9A227}
+  .ad-item h3{color:#075E54;margin-bottom:4px;font-size:16px}
+  .ad-item p{color:#666;font-size:13px;margin-bottom:8px;word-break:break-all}
+  .ad-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .ad-actions button{padding:8px;font-size:13px;margin:0;flex:1;min-width:80px}
+  .hidden{display:none!important}
+  .msg{padding:10px;border-radius:8px;margin:8px 0;text-align:center;font-size:14px}
+  .msg.success{background:#d4edda;color:#155724}
+  .msg.error{background:#f8d7da;color:#721c24}
+  .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="login" class="card">
+    <h1>🔐 <span>الزهراوي</span> للإعلانات</h1>
+    <p style="color:#666;margin-bottom:12px;text-align:center">أدخل كلمة السر</p>
+    <input type="password" id="password" placeholder="كلمة السر">
+    <button onclick="doLogin()">دخول</button>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <h1>📢 <span>الزهراوي</span> للإعلانات</h1>
+      <h2>➕ إعلان جديد</h2>
+      <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
+      <textarea id="desc" placeholder="وصف الإعلان"></textarea>
+      <input type="text" id="price" placeholder="السعر (اختياري)">
+      <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
+      <input type="url" id="image" placeholder="رابط الصورة (اختياري)">
+      <button onclick="addAd()">💾 حفظ الإعلان</button>
+      <div id="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 إعلاناتي (<span id="count">0</span>)</h2>
+      <div id="list"></div>
+    </div>
+    <p class="signature">✦ الزهراوي للإعلانات ✦</p>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { firebaseConfig, ADMIN_PASSWORD, APP_URL } from './config.js';
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.doLogin = function() {
+  if (document.getElementById('password').value === ADMIN_PASSWORD) {
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadAds();
+  } else { alert('كلمة السر خاطئة'); }
+};
+
+window.addAd = async function() {
+  const title = document.getElementById('title').value.trim();
+  if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
+  try {
+    await addDoc(collection(db, 'ads'), {
+      title,
+      desc: document.getElementById('desc').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      link: document.getElementById('link').value.trim(),
+      image: document.getElementById('image').value.trim(),
+      createdAt: serverTimestamp()
+    });
+    showMsg('✅ تم حفظ الإعلان', 'success');
+    ['title','desc','price','link','image'].forEach(id => document.getElementById(id).value = '');
+    loadAds();
+  } catch(e) { showMsg('خطأ: ' + e.message, 'error'); }
+};
+
+async function loadAds() {
+  const snap = await getDocs(collection(db, 'ads'));
+  const ads = [];
+  snap.forEach(d => ads.push({ id: d.id, ...d.data() }));
+  ads.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+  document.getElementById('count').textContent = ads.length;
+  const list = document.getElementById('list');
+  if (!ads.length) { list.innerHTML = '<p style="color:#999;text-align:center">لا توجد إعلانات بعد</p>'; return; }
+  list.innerHTML = ads.map(ad => `
+    <div class="ad-item">
+      <h3>${esc(ad.title)}</h3>
+      <p>${esc(ad.desc||'')}</p>
+      <div class="ad-actions">
+        <button class="share" onclick="shareAd('${ad.id}')">📤 مشاركة</button>
+        <button class="copy" onclick="copyLink('${ad.id}')">🔗 نسخ</button>
+        <button class="danger" onclick="delAd('${ad.id}')">🗑️ حذف</button>
+      </div>
+    </div>`).join('');
+}
+
+window.shareAd = function(id) {
+  const url = `${APP_URL}/ad.html?id=${id}`;
+  const text = `تفضل شاهد إعلاني:\n${url}`;
+  if (navigator.share) navigator.share({ text, url }).catch(()=>{});
+  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+window.copyLink = function(id) {
+  navigator.clipboard.writeText(`${APP_URL}/ad.html?id=${id}`).then(() => alert('تم نسخ الرابط'));
+};
+
+window.delAd = async function(id) {
+  if (!confirm('تأكيد حذف الإعلان نهائيًا؟')) return;
+  try { await deleteDoc(doc(db, 'ads', id)); loadAds(); }
+  catch(e) { alert('خطأ: ' + e.message); }
+};
+
+function showMsg(t, type) {
+  const el = document.getElementById('msg');
+  el.className = 'msg ' + type; el.textContent = t;
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 3000);
+}
+function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+</script>
+</body>
+</html>
