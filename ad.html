@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#C9A227">
+<title>الزهراوي للإعلانات</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
+  body{background:linear-gradient(135deg,#075E54,#128C7E);min-height:100vh;padding:16px;display:flex;align-items:center;justify-content:center}
+  .card{background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);border-top:6px solid #C9A227}
+  .img{width:100%;border-radius:12px;margin-bottom:16px;display:block;max-height:300px;object-fit:cover}
+  h1{color:#075E54;margin-bottom:12px;font-size:22px}
+  .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
+  .desc{color:#333;line-height:1.7;margin:12px 0;white-space:pre-wrap}
+  .btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;background:#25D366;color:#fff}
+  .btn:hover{background:#128C7E}
+  .error{text-align:center;padding:40px 20px}
+  .error h1{color:#e74c3c}
+  .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
+  .loading{color:#fff;font-size:18px;text-align:center}
+</style>
+</head>
+<body>
+<div id="content"><div class="loading">⏳ جاري التحميل...</div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { firebaseConfig } from './config.js';
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const id = new URLSearchParams(location.search).get('id');
+const content = document.getElementById('content');
+
+if (!id) {
+  content.innerHTML = '<div class="card error"><h1>❌ رابط غير صالح</h1><p style="margin-top:12px;color:#666">لم يتم تحديد إعلان</p></div>';
+} else {
+  loadAd();
+}
+
+async function loadAd() {
+  try {
+    const snap = await getDoc(doc(db, 'ads', id));
+    if (!snap.exists()) {
+      content.innerHTML = '<div class="card error"><h1>🚫 هذا الإعلان لم يعد متاحًا</h1><p style="margin-top:12px;color:#666">قد يكون صاحبه حذفه</p><p class="signature">✦ الزهراوي للإعلانات ✦</p></div>';
+      return;
+    }
+    const ad = snap.data();
+    content.innerHTML = `<div class="card">
+      ${ad.image ? `<img src="${esc(ad.image)}" class="img" alt="">` : ''}
+      <h1>${esc(ad.title)}</h1>
+      ${ad.price ? `<div class="price">💰 ${esc(ad.price)}</div>` : ''}
+      <div class="desc">${esc(ad.desc||'')}</div>
+      ${ad.link ? `<a href="${esc(ad.link)}" class="btn" target="_blank">📞 تواصل الآن</a>` : ''}
+      <p class="signature">✦ الزهراوي للإعلانات ✦</p>
+    </div>`;
+  } catch(e) {
+    content.innerHTML = '<div class="card error"><h1>خطأ</h1><p>'+esc(e.message)+'</p></div>';
+  }
+}
+function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+</script>
+</body>
+</html>
