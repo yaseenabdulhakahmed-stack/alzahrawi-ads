@@ -8,4 +8,4 @@ export const firebaseConfig = {
 };
 
 export const ADMIN_PASSWORD = "zahrawi2026";
-export const APP_URL = "https://yaseenabdulhakahmed.github.io/alzahrawi-ads";
+export const APP_URL = "https://alzahrawi-ads.yaseenabdulhakahmed.workers.dev";
