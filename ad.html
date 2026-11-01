@@ -5,17 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#C9A227">
 <title>الزهراوي للإعلانات</title>
-<link rel="manifest" href="manifest.json">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:linear-gradient(135deg,#075E54,#128C7E);min-height:100vh;padding:16px;display:flex;align-items:center;justify-content:center}
   .card{background:#fff;border-radius:16px;padding:30px;max-width:95%;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);border-top:8px solid #C9A227;margin: auto}
-  .img{width:100%;border-radius:12px;margin-bottom:16px;display:block;max-height:300px;object-fit:cover}
+  .gallery { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 16px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
+  .gallery img { height: 200px; border-radius: 12px; object-fit: cover; scroll-snap-align: start; flex-shrink: 0;}
   h1{color:#075E54;margin-bottom:12px;font-size:22px}
   .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
   .desc{color:#333;line-height:1.7;margin:12px 0;white-space:pre-wrap}
   .btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;background:#25D366;color:#fff}
   .btn:hover{background:#128C7E}
+  
+  /* تنسيق أزرار الملفات */
+  .files-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 16px; }
+  .files-section h3 { font-size: 16px; color: #333; margin-bottom: 8px; }
+  .file-link { display: block; background: #f4f4f4; color: #333; text-decoration: none; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; border: 1px solid #ddd; }
+  .file-link:hover { background: #e0e0e0; }
+
   .error{text-align:center;padding:40px 20px}
   .error h1{color:#e74c3c}
   .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
@@ -49,11 +56,28 @@ async function loadAd() {
       return;
     }
     const ad = snap.data();
+    
+    let imagesHtml = "";
+    if (ad.images && ad.images.length > 0) {
+      imagesHtml = `<div class="gallery">${ad.images.map(img => `<img src="${img}" alt="صورة الإعلان">`).join('')}</div>`;
+    } else if (ad.image) {
+      imagesHtml = `<div class="gallery"><img src="${ad.image}" alt="صورة الإعلان"></div>`;
+    }
+
+    let filesHtml = "";
+    if (ad.documents && ad.documents.length > 0) {
+      filesHtml = `<div class="files-section">
+        <h3>📎 المرفقات (اضغط للتحميل):</h3>
+        ${ad.documents.map(f => `<a href="${f.url}" target="_blank" class="file-link">📄 ${esc(f.name)}</a>`).join('')}
+      </div>`;
+    }
+
     content.innerHTML = `<div class="card">
-      ${ad.image ? `<img src="${esc(ad.image)}" class="img" alt="">` : ''}
+      ${imagesHtml}
       <h1>${esc(ad.title)}</h1>
       ${ad.price ? `<div class="price">💰 ${esc(ad.price)} ر.س</div>` : ''}
       <div class="desc">${esc(ad.desc||'')}</div>
+      ${filesHtml}
       <a href="${ad.link ? esc(ad.link) : DEFAULT_WHATSAPP}" class="btn" target="_blank">📞 تواصل الآن</a>
       <p class="signature">✦ الزهراوي للإعلانات ✦</p>
     </div>`;
@@ -62,8 +86,6 @@ async function loadAd() {
   }
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-
 </script>
 </body>
 </html>
