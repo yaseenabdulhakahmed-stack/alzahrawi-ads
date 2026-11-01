@@ -9,3 +9,4 @@ export const firebaseConfig = {
 
 export const ADMIN_PASSWORD = "zahrawi2026";
 export const APP_URL = "https://alzahrawi-ads3.vercel.app";
+export const DEFAULT_WHATSAPP = "https://wa.me/qr/HUFGZY3RX3VWN1?s=v";
