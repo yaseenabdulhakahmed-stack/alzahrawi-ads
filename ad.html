@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#C9A227">
 <title>الزهراوي للإعلانات</title>
+<link rel="manifest" href="manifest.json">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:linear-gradient(135deg,#075E54,#128C7E);min-height:100vh;padding:16px;display:flex;align-items:center;justify-content:center}
-   .card{background:#fff;border-radius:16px;padding:30px;max-width:95%;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);border-top:8px solid #C9A227;margin: auto}
+  .card{background:#fff;border-radius:16px;padding:30px;max-width:95%;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);border-top:8px solid #C9A227;margin: auto}
   .img{width:100%;border-radius:12px;margin-bottom:16px;display:block;max-height:300px;object-fit:cover}
   h1{color:#075E54;margin-bottom:12px;font-size:22px}
   .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
@@ -44,16 +45,16 @@ async function loadAd() {
   try {
     const snap = await getDoc(doc(db, 'ads', id));
     if (!snap.exists()) {
-      content.innerHTML = '<div class="card error"><h1>🚫 هذا المنشور لم يعد متاحًا</h1><p style="margin-top:12px;color:#666">قد يكون صاحبه حذفه</p><p class="signature">✦ الزهراوي للإعلانات ✦</p></div>';
+      content.innerHTML = '<div class="card error"><h1>🚫 هذا الإعلان لم يعد متاحًا</h1><p style="margin-top:12px;color:#666">قد يكون صاحبه حذفه</p><p class="signature">✦ الزهراوي للإعلانات ✦</p></div>';
       return;
     }
     const ad = snap.data();
     content.innerHTML = `<div class="card">
-      SAR{ad.image ? `<img src="SAR{esc(ad.image)}" class="img" alt="">` : ''}
-      <h1>SAR{esc(ad.title)}</h1>
-      SAR{ad.price ? `<div class="price">💰 SAR{esc(ad.price)}</div>` : ''}
-      <div class="desc">SAR{esc(ad.desc||'')}</div>
-      SAR{ad.link ? `<a href="SAR{esc(ad.link)}" class="btn" target="_blank">📞 تواصل الآن</a>` : ''}
+      ${ad.image ? `<img src="${esc(ad.image)}" class="img" alt="">` : ''}
+      <h1>${esc(ad.title)}</h1>
+      ${ad.price ? `<div class="price">💰 ${esc(ad.price)} ر.س</div>` : ''}
+      <div class="desc">${esc(ad.desc||'')}</div>
+      ${ad.link ? `<a href="${esc(ad.link)}" class="btn" target="_blank">📞 تواصل الآن</a>` : ''}
       <p class="signature">✦ الزهراوي للإعلانات ✦</p>
     </div>`;
   } catch(e) {
@@ -61,10 +62,11 @@ async function loadAd() {
   }
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
- if ('serviceWorker' in navigator) {
+
+if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js')
     .then(() => console.log('Service Worker Registered'));
- }
+}
 </script>
 </body>
 </html>
