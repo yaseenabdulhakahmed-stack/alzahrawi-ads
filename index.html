@@ -109,11 +109,21 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
-// دالة رفع الملفات إلى Supabase
+// دالة رفع الملفات إلى Supabase (مبسطة ومضمونة)
 async function uploadToSupabase(file) {
-  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-  const { data, error } = await supabase.storage.from('ads_files').upload(fileName, file);
+  // إزالة أي حروف عربية أو مسافات من اسم الملف لتجنب رفض السيرفر
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const fileName = `${Date.now()}_${cleanName}`;
+
+  const { data, error } = await supabase.storage
+    .from('ads_files')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+    
   if (error) throw error;
+  
   const { data: publicUrlData } = supabase.storage.from('ads_files').getPublicUrl(fileName);
   return publicUrlData.publicUrl;
 }
@@ -124,7 +134,7 @@ window.saveAd = async function() {
   const docFiles = document.getElementById('documentFiles').files;
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
-  showMsg('⏳ جاري رفع الملفات وحفظ الإعلان...', 'success');
+  showMsg('⏳ جاري الرفع والحفظ... يرجى الانتظار', 'success');
 
   let imagesArray = [];
   let docsArray = [];
@@ -173,7 +183,9 @@ window.saveAd = async function() {
     }
     
     loadAds();
-  } catch(e) { showMsg('خطأ: ' + e.message, 'error'); }
+  } catch(e) { 
+    showMsg('خطأ: ' + e.message, 'error'); 
+  }
 };
 
 window.editAd = function(id) {
@@ -227,8 +239,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = ` تعبتي من ضغوطات الدراسة وهمومها  
-الحل :\n${url}`;
+  const text = `  تعبتي من ضغوطات الدراسة وهمومها :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
@@ -246,7 +257,7 @@ window.delAd = async function(id) {
 function showMsg(t, type) {
   const el = document.getElementById('msg');
   el.className = 'msg ' + type; el.textContent = t;
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 5000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
