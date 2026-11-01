@@ -65,7 +65,7 @@
       <input type="file" id="imageFiles" accept="image/*" multiple>
 
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 رابط ملف PDF أو وورد (اختياري):</label>
-      <input type="url" id="documentLink" placeholder="مثال: https://drive.google.com/...">
+   <textarea id="documentLink" placeholder="ضع رابطاً في كل سطر، مثال:&#10;https://drive.google.com/link1&#10;https://drive.google.com/link2" style="min-height: 80px;"></textarea>
       <small style="color:#888; font-size:12px; display:block; margin-bottom:8px;">ارفع ملفك على جوجل درايف أو أي مركز ملفات وضع الرابط هنا.</small>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
@@ -154,9 +154,20 @@ window.saveAd = async function() {
     }
 
     // تجهيز رابط المستند (إذا وجد)
-    let docsArray = [];
-    if (docLink) {
-      docsArray.push({ name: "تحميل الملف المرفق", url: docLink });
+       ```javascript
+   let docsArray = [];
+   if (docLink) {
+     // تقسيم الروابط بناءً على السطر الجديد
+     const links = docLink.split('\n');
+     let fileCounter = 1;
+     links.forEach(link => {
+       if(link.trim() !== "") {
+         docsArray.push({ name: `📄 تحميل الملف ${fileCounter}`, url: link.trim() });
+         fileCounter++;
+       }
+     });
+   }
+   ```
     }
 
     const adData = {
