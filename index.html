@@ -61,11 +61,8 @@
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
       <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
       
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (اختياري):</label>
-      <input type="file" id="imageFiles" accept="image/*" multiple>
-      
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word, PowerPoint):</label>
-      <input type="file" id="documentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx" multiple>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صورة الإعلان (سيتم ضغطها تلقائياً):</label>
+      <input type="file" id="imageFile" accept="image/*">
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
       <button id="cancelBtn" class="danger hidden" onclick="cancelEdit()" style="margin-top:4px">❌ إلغاء التعديل</button>
@@ -84,7 +81,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { firebaseConfig, ADMIN_PASSWORD, APP_URL, SUPABASE_URL, SUPABASE_KEY } from './config.js';
+import { firebaseConfig, ADMIN_PASSWORD, APP_URL } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -107,58 +104,46 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
-// دالة الرفع المباشر (بدون مكتبات) لتجنب حظر الشبكة
-async function uploadToSupabase(file) {
-  const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-  const fileName = `${Date.now()}_${cleanName}`;
-  const arrayBuffer = await file.arrayBuffer();
-  
-  const url = `${SUPABASE_URL}/storage/v1/object/ads_files/${fileName}`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': file.type || 'application/octet-stream'
-    },
-    body: arrayBuffer
+// دالة ضغط الصورة وتحويلها لنص (تعمل بدون إنترنت وتجنب أخطاء الرفع)
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file) { resolve(""); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width; let height = img.height;
+        // تصغير أقصى عرض إلى 400 بكسل
+        if (width > 400) { height = Math.round((height * 400) / width); width = 400; }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.6)); // ضغط بنسبة 60%
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   });
-  
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`خطأ ${response.status}: ${errText}`);
-  }
-  
-  return `${SUPABASE_URL}/storage/v1/object/public/ads_files/${fileName}`;
 }
 
 window.saveAd = async function() {
   const title = document.getElementById('title').value.trim();
-  const imageFiles = document.getElementById('imageFiles').files;
-  const docFiles = document.getElementById('documentFiles').files;
+  const imageFile = document.getElementById('imageFile').files[0];
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
-  showMsg('⏳ جاري الرفع والحفظ... يرجى الانتظار', 'success');
-
-  let imagesArray = [];
-  let docsArray = [];
+  showMsg('⏳ جاري معالجة الصورة وحفظ الإعلان...', 'success');
 
   try {
-    for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
-      const url = await uploadToSupabase(imageFiles[i]);
-      imagesArray.push(url);
+    let imageUrl = "";
+    if (imageFile) {
+      imageUrl = await compressImage(imageFile);
     }
 
-    for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
-      const url = await uploadToSupabase(docFiles[i]);
-      docsArray.push({ name: docFiles[i].name, url: url });
-    }
-
-    if (editId) {
+    // إذا لم يتم رفع صورة جديدة أثناء التعديل، نحتفظ بالقديمة
+    if (editId && !imageFile) {
       const oldAd = allAds.find(a => a.id === editId);
-      if (imageFiles.length === 0) imagesArray = oldAd.images || [];
-      if (docFiles.length === 0) docsArray = oldAd.documents || [];
+      imageUrl = oldAd.image || "";
     }
 
     const adData = {
@@ -166,9 +151,7 @@ window.saveAd = async function() {
       desc: document.getElementById('desc').value.trim(),
       price: document.getElementById('price').value.trim(),
       link: document.getElementById('link').value.trim(),
-      images: imagesArray,
-      documents: docsArray,
-      image: imagesArray.length > 0 ? imagesArray[0] : "",
+      image: imageUrl,
     };
 
     if (editId) {
@@ -180,8 +163,7 @@ window.saveAd = async function() {
       await addDoc(collection(db, 'ads'), adData);
       showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
       ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('imageFiles').value = '';
-      document.getElementById('documentFiles').value = '';
+      document.getElementById('imageFile').value = '';
     }
     
     loadAds();
@@ -210,8 +192,7 @@ window.cancelEdit = function() {
   document.getElementById('saveBtn').innerText = "💾 حفظ الإعلان";
   document.getElementById('cancelBtn').classList.add('hidden');
   ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('imageFiles').value = '';
-  document.getElementById('documentFiles').value = '';
+  document.getElementById('imageFile').value = '';
 };
 
 async function loadAds() {
@@ -239,7 +220,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = ` تعبتي من ضغوطات الدراسة وهمومها :\n${url}`;
+  const text = `  هل لديك التزامات جامعية:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
@@ -257,7 +238,7 @@ window.delAd = async function(id) {
 function showMsg(t, type) {
   const el = document.getElementById('msg');
   el.className = 'msg ' + type; el.textContent = t;
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 6000);
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 5000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
