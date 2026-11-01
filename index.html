@@ -64,7 +64,7 @@
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
 
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word, PowerPoint):</label>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word - بحد أقصى 20 ميجا):</label>
       <input type="file" id="documentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx" multiple>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
@@ -88,6 +88,10 @@ import { firebaseConfig, ADMIN_PASSWORD, APP_URL } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// إعدادات بوت تليجرام
+const TG_TOKEN = "8779708339:AAE4NYVk5IbSBXy9z0uBWYOsF9oKK405e4k";
+const TG_CHAT_ID = "859070686";
 
 let editId = null;
 let allAds = [];
@@ -129,20 +133,27 @@ function compressImage(file) {
   });
 }
 
-// دالة رفع الملفات إلى Catbox (مضمونة ولا تحجب)
-async function uploadToCatbox(file) {
+// دالة رفع الملفات إلى تليجرام (مضمونة 100%)
+async function uploadToTelegram(file) {
   const formData = new FormData();
-  formData.append('reqtype', 'fileupload');
-  formData.append('fileToUpload', file);
+  formData.append('chat_id', TG_CHAT_ID);
+  formData.append('document', file);
 
-  const response = await fetch('https://catbox.moe/user/api.php', {
+  const uploadRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, {
     method: 'POST',
     body: formData
   });
+  
+  const uploadData = await uploadRes.json();
+  if (!uploadData.ok) throw new Error('فشل الرفع، قد يكون حجم الملف كبيراً جداً');
 
-  if (!response.ok) throw new Error('فشل رفع الملف، قد يكون حجمه كبيراً جداً');
-  const fileUrl = await response.text();
-  return fileUrl.trim();
+  const fileId = uploadData.result.document.file_id;
+  
+  const fileRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`);
+  const fileData = await fileRes.json();
+  if (!fileData.ok) throw new Error('فشل الحصول على رابط الملف');
+
+  return `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`;
 }
 
 window.saveAd = async function() {
@@ -157,19 +168,19 @@ window.saveAd = async function() {
     let imagesArray = [];
     let docsArray = [];
 
-    // معالجة الصور
+    // 1. معالجة وضغط الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const imgData = await compressImage(imageFiles[i]);
       imagesArray.push(imgData);
     }
 
-    // معالجة الملفات
+    // 2. رفع الملفات إلى تليجرام
     for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
-      const url = await uploadToCatbox(docFiles[i]);
+      const url = await uploadToTelegram(docFiles[i]);
       docsArray.push({ name: docFiles[i].name, url: url });
     }
 
-    // إذا لم يتم اختيار ملفات جديدة أثناء التعديل، نحتفظ بالقديمة
+    // 3. الحفاظ على الملفات القديمة أثناء التعديل
     if (editId) {
       const oldAd = allAds.find(a => a.id === editId);
       if (imageFiles.length === 0) imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
