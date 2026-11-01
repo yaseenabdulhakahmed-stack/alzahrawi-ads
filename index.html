@@ -147,7 +147,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = `تعبتي من ضغوطات الدراسة وهمومها تفضلي ريحي  شاهدي الخطوات:\n${url}`;
+  const text = `تفضل شاهد إعلاني:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
