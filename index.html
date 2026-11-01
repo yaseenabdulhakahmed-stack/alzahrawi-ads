@@ -1,4 +1,4 @@
-وه<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -15,6 +15,7 @@
   h1 span{color:#C9A227}
   h2{color:#128C7E;margin-bottom:12px;font-size:17px}
   input,textarea,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit}
+  input[type="file"]{background:#f9f9f9; cursor:pointer;}
   textarea{min-height:80px;resize:vertical}
   button{background:#C9A227;color:#fff;border:none;font-weight:bold;cursor:pointer}
   button:hover{background:#a8861f}
@@ -33,8 +34,6 @@
   .msg.success{background:#d4edda;color:#155724}
   .msg.error{background:#f8d7da;color:#721c24}
   .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
-  
-  /* تنسيق خاص لأيقونة العين */
   .password-wrapper { position: relative; margin: 8px 0; }
   .password-wrapper input { margin: 0; padding-left: 40px; }
   .eye-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 20px; opacity: 0.6; }
@@ -46,12 +45,10 @@
   <div id="login" class="card">
     <h1>🔐 <span>الزهراوي</span> للإعلانات</h1>
     <p style="color:#666;margin-bottom:12px;text-align:center">أدخل كلمة السر</p>
-    
     <div class="password-wrapper">
       <input type="password" id="password" placeholder="كلمة السر">
       <span class="eye-icon" onclick="togglePassword()">👁️</span>
     </div>
-    
     <button onclick="doLogin()">دخول</button>
   </div>
 
@@ -63,7 +60,11 @@
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
       <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
-      <input type="url" id="image" placeholder="رابط الصورة (اختياري)">
+      
+      <!-- زر رفع الصورة من الجوال -->
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صورة للإعلان (اختياري):</label>
+      <input type="file" id="imageFile" accept="image/*">
+      
       <button onclick="addAd()">💾 حفظ الإعلان</button>
       <div id="msg"></div>
     </div>
@@ -79,14 +80,12 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig, ADMIN_PASSWORD, APP_URL } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// دالة إظهار/إخفاء كلمة المرور
 window.togglePassword = function() {
   const pwdInput = document.getElementById('password');
   const icon = document.querySelector('.eye-icon');
@@ -107,22 +106,67 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
+// دالة لضغط الصورة وتحويلها إلى نص (Base64)
+function resizeImage(file, maxWidth = 600) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // ضغط الصورة بجودة 60% لتقليل حجمها
+        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 window.addAd = async function() {
   const title = document.getElementById('title').value.trim();
+  const file = document.getElementById('imageFile').files[0];
+  
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
+  
+  showMsg('⏳ جاري معالجة الصورة وحفظ الإعلان...', 'success');
+
+  let imageUrl = "";
   try {
+    if (file) {
+      // تحويل الصورة إلى نص مضغوط
+      imageUrl = await resizeImage(file);
+    }
+
     await addDoc(collection(db, 'ads'), {
-      title,
+      title: title,
       desc: document.getElementById('desc').value.trim(),
       price: document.getElementById('price').value.trim(),
       link: document.getElementById('link').value.trim(),
-      image: document.getElementById('image').value.trim(),
+      image: imageUrl, // يتم حفظ الصورة كنص
       createdAt: serverTimestamp()
     });
-    showMsg('✅ تم حفظ الإعلان', 'success');
-    ['title','desc','price','link','image'].forEach(id => document.getElementById(id).value = '');
+    
+    showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
+    ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('imageFile').value = '';
     loadAds();
-  } catch(e) { showMsg('خطأ: ' + e.message, 'error'); }
+  } catch(e) { 
+    showMsg('خطأ: ' + e.message, 'error'); 
+  }
 };
 
 async function loadAds() {
@@ -147,7 +191,8 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = `تعبتي من ضغوطات الدراسة وهمومها ريحي :\n${url}`;
+  const text = ` تعبتي من ضغوطات الدراسة وهمومها  
+الحل :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
@@ -165,14 +210,9 @@ window.delAd = async function(id) {
 function showMsg(t, type) {
   const el = document.getElementById('msg');
   el.className = 'msg ' + type; el.textContent = t;
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 3000);
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
-    .then(() => console.log('Service Worker Registered'));
-}
-
 </script>
 </body>
 </html>
