@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>   <link rel="manifest" href="manifest.json">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#C9A227">
 <title>الزهراوي للإعلانات — لوحة الإدارة</title>
+<link rel="manifest" href="manifest.json">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:#f0f2f5;padding:16px}
@@ -50,7 +51,8 @@
       <h2>➕ إعلان جديد</h2>
       <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
-      <input type="text" id="price" placeholder="السعر (اختياري)">
+      <!-- تم تعديل هذه الخانة لإضافة الريال السعودي -->
+      <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
       <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
       <input type="url" id="image" placeholder="رابط الصورة (اختياري)">
       <button onclick="addAd()">💾 حفظ الإعلان</button>
@@ -108,28 +110,28 @@ async function loadAds() {
   ads.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
   document.getElementById('count').textContent = ads.length;
   const list = document.getElementById('list');
-  if (!ads.length) { list.innerHTML = '<p style="color:#999;text-align:center">لا توجد منشورات بعد</p>'; return; }
+  if (!ads.length) { list.innerHTML = '<p style="color:#999;text-align:center">لا توجد إعلانات بعد</p>'; return; }
   list.innerHTML = ads.map(ad => `
     <div class="ad-item">
-      <h3>SAR{esc(ad.title)}</h3>
-      <p>SAR{esc(ad.desc||'')}</p>
+      <h3>${esc(ad.title)}</h3>
+      <p>${esc(ad.desc||'')}</p>
       <div class="ad-actions">
-        <button class="share" onclick="shareAd('SAR{ad.id}')">📤 مشاركة</button>
-        <button class="copy" onclick="copyLink('SAR{ad.id}')">🔗 نسخ</button>
-        <button class="danger" onclick="delAd('SAR{ad.id}')">🗑️ حذف</button>
+        <button class="share" onclick="shareAd('${ad.id}')">📤 مشاركة</button>
+        <button class="copy" onclick="copyLink('${ad.id}')">🔗 نسخ</button>
+        <button class="danger" onclick="delAd('${ad.id}')">🗑️ حذف</button>
       </div>
     </div>`).join('');
 }
 
 window.shareAd = function(id) {
-  const url = `SAR{APP_URL}/ad.html?id=SAR{id}`;
-  const text = ' تعبتي من ضغوطات الدراسة وهمومها تفضل شاهد الخطوات:\nSAR{url}`;
+  const url = `${APP_URL}/ad.html?id=${id}`;
+  const text = `تعبتي من ضغوطات الدراسة وهمومها تفضل شاهدي الخطوات:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
-  else window.open(`https://wa.me/?text=SAR{encodeURIComponent(text)}`, '_blank');
+  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
 
 window.copyLink = function(id) {
-  navigator.clipboard.writeText(`SAR{APP_URL}/ad.html?id=SAR{id}`).then(() => alert('تم نسخ الرابط'));
+  navigator.clipboard.writeText(`${APP_URL}/ad.html?id=${id}`).then(() => alert('تم نسخ الرابط'));
 };
 
 window.delAd = async function(id) {
@@ -144,11 +146,11 @@ function showMsg(t, type) {
   setTimeout(() => { el.className = ''; el.textContent = ''; }, 3000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
- 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(() => console.log('Service Worker Registered'));
-                            }
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service Worker Registered'));
+}
 </script>
 </body>
 </html>
