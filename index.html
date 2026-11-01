@@ -62,9 +62,9 @@
       <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
-      <input type="url" id="link" placeholder="الرابط (https://wa.me/+966574205007... أو https://maps...)">
+      <input type="url" id="link" placeholder="الرابط (https://wa.me/qr/HUFGZY3RX3VWN1?s=v... أو https://maps...)">
       <input type="url" id="image" placeholder="رابط الصورة (اختياري)">
-      <input type="url" id="image" placeholder="تلفون">
+      <input type="url" id="image" placeholder="+966 57 786 2430">
       <button onclick="addAd()">💾 حفظ الإعلان</button>
       <div id="msg"></div>
     </div>
@@ -150,7 +150,7 @@ window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
   const text = `تعبتي من ضغوطات الدراسة وهمومها تفضلي ريحي  شاهدي الخطوات:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
-  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  else window.open(`https://wa.me/qr/HUFGZY3RX3VWN1?s=v?text=${encodeURIComponent(text)}`, '_blank');
 };
 
 window.copyLink = function(id) {
