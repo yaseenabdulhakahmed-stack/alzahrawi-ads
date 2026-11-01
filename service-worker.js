@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alzahrawi-cache-v5';
+const CACHE_NAME = 'alzahrawi-cache-v7';
 const urlsToCache = [
   '/',
   '/index.html',
