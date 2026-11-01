@@ -10,3 +10,7 @@ export const firebaseConfig = {
 export const ADMIN_PASSWORD = "zahrawi2026";
 export const APP_URL = "https://alzahrawi-ads3.vercel.app";
 export const DEFAULT_WHATSAPP = "https://wa.me/qr/HUFGZY3RX3VWN1?s=v";
+
+// مفاتيح Supabase لتخزين الصور والملفات
+export const SUPABASE_URL = "https://chkhehsvzolwqjzngpv.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_LZC1a-ZRXy-T1DjXy3JMkg_rSI_NANy";
