@@ -28,7 +28,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, DEFAULT_WHATSAPP } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -54,7 +54,7 @@ async function loadAd() {
       <h1>${esc(ad.title)}</h1>
       ${ad.price ? `<div class="price">💰 ${esc(ad.price)} ر.س</div>` : ''}
       <div class="desc">${esc(ad.desc||'')}</div>
-      ${ad.link ? `<a href="${esc(ad.link)}" class="btn" target="_blank">📞 تواصل الآن</a>` : ''}
+      <a href="${ad.link ? esc(ad.link) : DEFAULT_WHATSAPP}" class="btn" target="_blank">📞 تواصل الآن</a>
       <p class="signature">✦ الزهراوي للإعلانات ✦</p>
     </div>`;
   } catch(e) {
