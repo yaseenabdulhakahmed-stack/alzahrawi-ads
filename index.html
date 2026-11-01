@@ -61,8 +61,11 @@
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
       <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
       
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (يمكنك اختيار حتى 3 صور):</label>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
+
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word, PowerPoint):</label>
+      <input type="file" id="documentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx" multiple>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
       <button id="cancelBtn" class="danger hidden" onclick="cancelEdit()" style="margin-top:4px">❌ إلغاء التعديل</button>
@@ -104,6 +107,7 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
+// دالة ضغط الصور (Base64)
 function compressImage(file) {
   return new Promise((resolve) => {
     if (!file) { resolve(""); return; }
@@ -125,26 +129,51 @@ function compressImage(file) {
   });
 }
 
+// دالة رفع الملفات إلى Catbox (مضمونة ولا تحجب)
+async function uploadToCatbox(file) {
+  const formData = new FormData();
+  formData.append('reqtype', 'fileupload');
+  formData.append('fileToUpload', file);
+
+  const response = await fetch('https://catbox.moe/user/api.php', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) throw new Error('فشل رفع الملف، قد يكون حجمه كبيراً جداً');
+  const fileUrl = await response.text();
+  return fileUrl.trim();
+}
+
 window.saveAd = async function() {
   const title = document.getElementById('title').value.trim();
   const imageFiles = document.getElementById('imageFiles').files;
+  const docFiles = document.getElementById('documentFiles').files;
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
-  showMsg('⏳ جاري معالجة الصور وحفظ الإعلان...', 'success');
+  showMsg('⏳ جاري رفع الملفات وحفظ الإعلان...', 'success');
 
   try {
     let imagesArray = [];
-    
-    // ضغط ورفع الصور (حتى 3 صور)
+    let docsArray = [];
+
+    // معالجة الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const imgData = await compressImage(imageFiles[i]);
       imagesArray.push(imgData);
     }
 
-    // إذا لم يتم اختيار صور جديدة أثناء التعديل، نحتفظ بالقديمة
-    if (editId && imageFiles.length === 0) {
+    // معالجة الملفات
+    for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
+      const url = await uploadToCatbox(docFiles[i]);
+      docsArray.push({ name: docFiles[i].name, url: url });
+    }
+
+    // إذا لم يتم اختيار ملفات جديدة أثناء التعديل، نحتفظ بالقديمة
+    if (editId) {
       const oldAd = allAds.find(a => a.id === editId);
-      imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
+      if (imageFiles.length === 0) imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
+      if (docFiles.length === 0) docsArray = oldAd.documents || [];
     }
 
     const adData = {
@@ -153,7 +182,8 @@ window.saveAd = async function() {
       price: document.getElementById('price').value.trim(),
       link: document.getElementById('link').value.trim(),
       images: imagesArray,
-      image: imagesArray.length > 0 ? imagesArray[0] : "" // للتوافق مع الصفحة
+      documents: docsArray,
+      image: imagesArray.length > 0 ? imagesArray[0] : ""
     };
 
     if (editId) {
@@ -166,6 +196,7 @@ window.saveAd = async function() {
       showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
       ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('imageFiles').value = '';
+      document.getElementById('documentFiles').value = '';
     }
     
     loadAds();
@@ -195,6 +226,7 @@ window.cancelEdit = function() {
   document.getElementById('cancelBtn').classList.add('hidden');
   ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('imageFiles').value = '';
+  document.getElementById('documentFiles').value = '';
 };
 
 async function loadAds() {
@@ -240,7 +272,7 @@ window.delAd = async function(id) {
 function showMsg(t, type) {
   const el = document.getElementById('msg');
   el.className = 'msg ' + type; el.textContent = t;
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 5000);
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 6000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
