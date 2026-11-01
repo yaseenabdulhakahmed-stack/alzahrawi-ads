@@ -84,12 +84,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { firebaseConfig, ADMIN_PASSWORD, APP_URL, SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let editId = null;
 let allAds = [];
@@ -109,23 +107,30 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
-// دالة رفع الملفات إلى Supabase (مبسطة ومضمونة)
+// دالة الرفع المباشر (بدون مكتبات) لتجنب حظر الشبكة
 async function uploadToSupabase(file) {
-  // إزالة أي حروف عربية أو مسافات من اسم الملف لتجنب رفض السيرفر
   const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const fileName = `${Date.now()}_${cleanName}`;
-
-  const { data, error } = await supabase.storage
-    .from('ads_files')
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
-    
-  if (error) throw error;
+  const arrayBuffer = await file.arrayBuffer();
   
-  const { data: publicUrlData } = supabase.storage.from('ads_files').getPublicUrl(fileName);
-  return publicUrlData.publicUrl;
+  const url = `${SUPABASE_URL}/storage/v1/object/ads_files/${fileName}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': file.type || 'application/octet-stream'
+    },
+    body: arrayBuffer
+  });
+  
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`خطأ ${response.status}: ${errText}`);
+  }
+  
+  return `${SUPABASE_URL}/storage/v1/object/public/ads_files/${fileName}`;
 }
 
 window.saveAd = async function() {
@@ -140,19 +145,16 @@ window.saveAd = async function() {
   let docsArray = [];
 
   try {
-    // رفع الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const url = await uploadToSupabase(imageFiles[i]);
       imagesArray.push(url);
     }
 
-    // رفع الملفات
     for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
       const url = await uploadToSupabase(docFiles[i]);
       docsArray.push({ name: docFiles[i].name, url: url });
     }
 
-    // إذا لم يتم رفع ملفات جديدة أثناء التعديل، نحتفظ بالقديمة
     if (editId) {
       const oldAd = allAds.find(a => a.id === editId);
       if (imageFiles.length === 0) imagesArray = oldAd.images || [];
@@ -191,12 +193,10 @@ window.saveAd = async function() {
 window.editAd = function(id) {
   const ad = allAds.find(a => a.id === id);
   if (!ad) return;
-  
   document.getElementById('title').value = ad.title;
   document.getElementById('desc').value = ad.desc || '';
   document.getElementById('price').value = ad.price || '';
   document.getElementById('link').value = ad.link || '';
-  
   editId = id;
   document.getElementById('formTitle').innerText = "✏️ تعديل الإعلان";
   document.getElementById('saveBtn').innerText = "💾 تحديث الإعلان";
@@ -239,7 +239,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = `  تعبتي من ضغوطات الدراسة وهمومها :\n${url}`;
+  const text = ` تعبتي من ضغوطات الدراسة وهمومها :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
@@ -257,7 +257,7 @@ window.delAd = async function(id) {
 function showMsg(t, type) {
   const el = document.getElementById('msg');
   el.className = 'msg ' + type; el.textContent = t;
-  setTimeout(() => { el.className = ''; el.textContent = ''; }, 5000);
+  setTimeout(() => { el.className = ''; el.textContent = ''; }, 6000);
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
