@@ -59,13 +59,14 @@
       <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
-      <input type="url" id="link" placeholder="الرابط (https://wa.me/967... أو https://maps...)">
+      <input type="url" id="link" placeholder="رابط التواصل (https://wa.me/967... أو https://maps...)">
       
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
 
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word - بحد أقصى 10 ميجا):</label>
-      <input type="file" id="documentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx" multiple>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 رابط ملف PDF أو وورد (اختياري):</label>
+      <input type="url" id="documentLink" placeholder="مثال: https://drive.google.com/...">
+      <small style="color:#888; font-size:12px; display:block; margin-bottom:8px;">ارفع ملفك على جوجل درايف أو أي مركز ملفات وضع الرابط هنا.</small>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
       <button id="cancelBtn" class="danger hidden" onclick="cancelEdit()" style="margin-top:4px">❌ إلغاء التعديل</button>
@@ -129,53 +130,33 @@ function compressImage(file) {
   });
 }
 
-// دالة رفع الملفات إلى Filebin (مستحيل أن تحجب)
-async function uploadToFilebin(file) {
-  const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-  const binId = 'alzahrawi-ads-' + Date.now();
-  const url = `https://filebin.net/${binId}/${cleanName}`;
-  
-  const res = await fetch(url, {
-    method: 'POST',
-    body: file,
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream'
-    }
-  });
-  
-  if (!res.ok) throw new Error('فشل الرفع، تأكد من حجم الملف');
-  return url;
-}
-
 window.saveAd = async function() {
   const title = document.getElementById('title').value.trim();
   const imageFiles = document.getElementById('imageFiles').files;
-  const docFiles = document.getElementById('documentFiles').files;
+  const docLink = document.getElementById('documentLink').value.trim();
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
-  showMsg('⏳ جاري رفع الملفات وحفظ الإعلان...', 'success');
+  showMsg('⏳ جاري معالجة الصور وحفظ الإعلان...', 'success');
 
   try {
     let imagesArray = [];
-    let docsArray = [];
-
-    // 1. معالجة الصور
+    
+    // معالجة الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const imgData = await compressImage(imageFiles[i]);
       imagesArray.push(imgData);
     }
 
-    // 2. رفع الملفات إلى Filebin
-    for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
-      const url = await uploadToFilebin(docFiles[i]);
-      docsArray.push({ name: docFiles[i].name, url: url });
+    // الحفاظ على الصور القديمة أثناء التعديل
+    if (editId && imageFiles.length === 0) {
+      const oldAd = allAds.find(a => a.id === editId);
+      imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
     }
 
-    // 3. الحفاظ على الملفات القديمة أثناء التعديل
-    if (editId) {
-      const oldAd = allAds.find(a => a.id === editId);
-      if (imageFiles.length === 0) imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
-      if (docFiles.length === 0) docsArray = oldAd.documents || [];
+    // تجهيز رابط المستند (إذا وجد)
+    let docsArray = [];
+    if (docLink) {
+      docsArray.push({ name: "تحميل الملف المرفق", url: docLink });
     }
 
     const adData = {
@@ -196,9 +177,8 @@ window.saveAd = async function() {
       adData.createdAt = serverTimestamp();
       await addDoc(collection(db, 'ads'), adData);
       showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
-      ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
+      ['title','desc','price','link','documentLink'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('imageFiles').value = '';
-      document.getElementById('documentFiles').value = '';
     }
     
     loadAds();
@@ -214,6 +194,13 @@ window.editAd = function(id) {
   document.getElementById('desc').value = ad.desc || '';
   document.getElementById('price').value = ad.price || '';
   document.getElementById('link').value = ad.link || '';
+  
+  if(ad.documents && ad.documents.length > 0) {
+     document.getElementById('documentLink').value = ad.documents[0].url;
+  } else {
+     document.getElementById('documentLink').value = '';
+  }
+
   editId = id;
   document.getElementById('formTitle').innerText = "✏️ تعديل الإعلان";
   document.getElementById('saveBtn').innerText = "💾 تحديث الإعلان";
@@ -226,9 +213,8 @@ window.cancelEdit = function() {
   document.getElementById('formTitle').innerText = "➕ إعلان جديد";
   document.getElementById('saveBtn').innerText = "💾 حفظ الإعلان";
   document.getElementById('cancelBtn').classList.add('hidden');
-  ['title','desc','price','link'].forEach(id => document.getElementById(id).value = '');
+  ['title','desc','price','link','documentLink'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('imageFiles').value = '';
-  document.getElementById('documentFiles').value = '';
 };
 
 async function loadAds() {
@@ -256,7 +242,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = ` هل لديك التزامات جامعية  :\n${url}`;
+  const text = `هل عليكي التزامات جامعية :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
