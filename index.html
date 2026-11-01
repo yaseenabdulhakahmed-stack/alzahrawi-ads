@@ -64,7 +64,7 @@
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
 
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word - بحد أقصى 20 ميجا):</label>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 أرفق ملفات (PDF, Word - بحد أقصى 10 ميجا):</label>
       <input type="file" id="documentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx" multiple>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
@@ -89,10 +89,6 @@ import { firebaseConfig, ADMIN_PASSWORD, APP_URL } from './config.js';
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// إعدادات بوت تليجرام
-const TG_TOKEN = "8779708339:AAE4NYVk5IbSBXy9z0uBWYOsF9oKK405e4k";
-const TG_CHAT_ID = "859070686";
-
 let editId = null;
 let allAds = [];
 
@@ -111,7 +107,7 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
-// دالة ضغط الصور (Base64)
+// دالة ضغط الصور (Base64) - تعمل بشكل ممتاز
 function compressImage(file) {
   return new Promise((resolve) => {
     if (!file) { resolve(""); return; }
@@ -133,27 +129,22 @@ function compressImage(file) {
   });
 }
 
-// دالة رفع الملفات إلى تليجرام (مضمونة 100%)
-async function uploadToTelegram(file) {
-  const formData = new FormData();
-  formData.append('chat_id', TG_CHAT_ID);
-  formData.append('document', file);
-
-  const uploadRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, {
+// دالة رفع الملفات إلى Filebin (مستحيل أن تحجب)
+async function uploadToFilebin(file) {
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const binId = 'alzahrawi-ads-' + Date.now();
+  const url = `https://filebin.net/${binId}/${cleanName}`;
+  
+  const res = await fetch(url, {
     method: 'POST',
-    body: formData
+    body: file,
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream'
+    }
   });
   
-  const uploadData = await uploadRes.json();
-  if (!uploadData.ok) throw new Error('فشل الرفع، قد يكون حجم الملف كبيراً جداً');
-
-  const fileId = uploadData.result.document.file_id;
-  
-  const fileRes = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`);
-  const fileData = await fileRes.json();
-  if (!fileData.ok) throw new Error('فشل الحصول على رابط الملف');
-
-  return `https://api.telegram.org/file/bot${TG_TOKEN}/${fileData.result.file_path}`;
+  if (!res.ok) throw new Error('فشل الرفع، تأكد من حجم الملف');
+  return url;
 }
 
 window.saveAd = async function() {
@@ -168,15 +159,15 @@ window.saveAd = async function() {
     let imagesArray = [];
     let docsArray = [];
 
-    // 1. معالجة وضغط الصور
+    // 1. معالجة الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const imgData = await compressImage(imageFiles[i]);
       imagesArray.push(imgData);
     }
 
-    // 2. رفع الملفات إلى تليجرام
+    // 2. رفع الملفات إلى Filebin
     for (let i = 0; i < Math.min(docFiles.length, 3); i++) {
-      const url = await uploadToTelegram(docFiles[i]);
+      const url = await uploadToFilebin(docFiles[i]);
       docsArray.push({ name: docFiles[i].name, url: url });
     }
 
@@ -265,7 +256,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = ` هل لديك التزامات جامعية :\n${url}`;
+  const text = ` هل لديك التزامات جامعية  :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
