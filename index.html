@@ -25,7 +25,8 @@
   button.copy{background:#075E54}
   button.edit{background:#3498db}
   .ad-item{background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:10px;border-right:4px solid #C9A227}
-  .ad-item h3{color:#075E54;margin-bottom:4px;font-size:16px}
+  .ad-item h3{color:#075E54;margin-bottom:4px;font-size:16px; display:flex; justify-content:space-between; align-items:center;}
+  .views-badge{font-size:12px; color:#C9A227; font-weight:normal; background:#fef9e7; padding:2px 8px; border-radius:10px;}
   .ad-item p{color:#666;font-size:13px;margin-bottom:8px;word-break:break-all}
   .ad-actions{display:flex;gap:6px;flex-wrap:wrap}
   .ad-actions button{padding:8px;font-size:13px;margin:0;flex:1;min-width:70px}
@@ -64,9 +65,8 @@
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
 
-      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 رابط ملف PDF أو وورد (اختياري):</label>
-   <textarea id="documentLink" placeholder="ضع رابطاً في كل سطر، مثال:&#10;https://drive.google.com/link1&#10;https://drive.google.com/link2" style="min-height: 80px;"></textarea>
-      <small style="color:#888; font-size:12px; display:block; margin-bottom:8px;">ارفع ملفك على جوجل درايف أو أي مركز ملفات وضع الرابط هنا.</small>
+      <label style="font-size:14px;color:#555;margin-top:8px;display:block">📄 روابط الملفات (PDF/Word) - ضع كل رابط في سطر:</label>
+      <textarea id="documentLink" placeholder="مثال:&#10;https://drive.google.com/link1&#10;https://drive.google.com/link2"></textarea>
       
       <button id="saveBtn" onclick="saveAd()">💾 حفظ الإعلان</button>
       <button id="cancelBtn" class="danger hidden" onclick="cancelEdit()" style="margin-top:4px">❌ إلغاء التعديل</button>
@@ -108,7 +108,6 @@ window.doLogin = function() {
   } else { alert('كلمة السر خاطئة'); }
 };
 
-// دالة ضغط الصور (Base64) - تعمل بشكل ممتاز
 function compressImage(file) {
   return new Promise((resolve) => {
     if (!file) { resolve(""); return; }
@@ -133,41 +132,34 @@ function compressImage(file) {
 window.saveAd = async function() {
   const title = document.getElementById('title').value.trim();
   const imageFiles = document.getElementById('imageFiles').files;
-  const docLink = document.getElementById('documentLink').value.trim();
+  const docLinksText = document.getElementById('documentLink').value.trim();
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
   showMsg('⏳ جاري معالجة الصور وحفظ الإعلان...', 'success');
 
   try {
     let imagesArray = [];
-    
-    // معالجة الصور
     for (let i = 0; i < Math.min(imageFiles.length, 3); i++) {
       const imgData = await compressImage(imageFiles[i]);
       imagesArray.push(imgData);
     }
 
-    // الحفاظ على الصور القديمة أثناء التعديل
     if (editId && imageFiles.length === 0) {
       const oldAd = allAds.find(a => a.id === editId);
       imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
     }
 
-    // تجهيز رابط المستند (إذا وجد)
-       ```javascript
-   let docsArray = [];
-   if (docLink) {
-     // تقسيم الروابط بناءً على السطر الجديد
-     const links = docLink.split('\n');
-     let fileCounter = 1;
-     links.forEach(link => {
-       if(link.trim() !== "") {
-         docsArray.push({ name: `📄 تحميل الملف ${fileCounter}`, url: link.trim() });
-         fileCounter++;
-       }
-     });
-   }
-   ```
+    // استخراج الروابط من المساحة النصية
+    let docsArray = [];
+    if (docLinksText) {
+      const links = docLinksText.split('\n');
+      let fileCounter = 1;
+      links.forEach(link => {
+        if(link.trim() !== "") {
+          docsArray.push({ name: `📄 تحميل الملف ${fileCounter}`, url: link.trim() });
+          fileCounter++;
+        }
+      });
     }
 
     const adData = {
@@ -186,6 +178,7 @@ window.saveAd = async function() {
       cancelEdit();
     } else {
       adData.createdAt = serverTimestamp();
+      adData.views = 0; // تصفير العداد عند الإنشاء
       await addDoc(collection(db, 'ads'), adData);
       showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
       ['title','desc','price','link','documentLink'].forEach(id => document.getElementById(id).value = '');
@@ -206,8 +199,9 @@ window.editAd = function(id) {
   document.getElementById('price').value = ad.price || '';
   document.getElementById('link').value = ad.link || '';
   
+  // دمج الروابط في المساحة النصية عند التعديل
   if(ad.documents && ad.documents.length > 0) {
-     document.getElementById('documentLink').value = ad.documents[0].url;
+     document.getElementById('documentLink').value = ad.documents.map(d => d.url).join('\n');
   } else {
      document.getElementById('documentLink').value = '';
   }
@@ -240,7 +234,10 @@ async function loadAds() {
   
   list.innerHTML = allAds.map(ad => `
     <div class="ad-item">
-      <h3>${esc(ad.title)}</h3>
+      <h3>
+        <span>${esc(ad.title)}</span>
+        <span class="views-badge">👁️ ${ad.views || 0}</span>
+      </h3>
       <p>${esc(ad.desc||'')}</p>
       <div class="ad-actions">
         <button class="edit" onclick="editAd('${ad.id}')">✏️ تعديل</button>
@@ -253,7 +250,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = `هل عليكي التزامات جامعية :\n${url}`;
+  const text = `  هل لديكي التزامات جامعية وواجبات:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
