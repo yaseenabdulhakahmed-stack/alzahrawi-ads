@@ -61,11 +61,12 @@
     <div class="card">
       <h1>📢 <span>الزهراوي</span> للإعلانات</h1>
       <h2 id="formTitle">➕ إعلان جديد</h2>
-      <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
+      <input type="text" id="title" placeholder="عنوان الإعلان (مثال: خدمات طلابية متكاملة)">
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
       
-      <!-- قائمة التصنيفات المخصصة -->
+      <!-- قائمة التصنيفات المخصصة مع خيار شامل -->
       <select id="category">
+        <option value="⭐ شامل (كل الخدمات)">⭐ شامل (كل الخدمات)</option>
         <option value="📝 اختبارات">📝 اختبارات</option>
         <option value="📚 واجبات">📚 واجبات</option>
         <option value="📁 سكاليف">📁 سكاليف</option>
@@ -80,7 +81,7 @@
       </select>
 
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
-      <input type="url" id="link" placeholder="رابط التواصل (https://wa.me/967... أو https://maps...)">
+      <input type="url" id="link" placeholder="رابط التواصل (اختياري - سيتم استخدام رقمك تلقائياً)">
       
       <label style="font-size:14px;color:#555;margin-top:8px;display:block">📸 اختر صور الإعلان (حتى 3 صور):</label>
       <input type="file" id="imageFiles" accept="image/*" multiple>
@@ -100,6 +101,7 @@
       <div class="filter-box">
         <select id="filterCategory" onchange="loadAds()">
           <option value="all">كل الأقسام</option>
+          <option value="⭐ شامل (كل الخدمات)">⭐ شامل (كل الخدمات)</option>
           <option value="📝 اختبارات">📝 اختبارات</option>
           <option value="📚 واجبات">📚 واجبات</option>
           <option value="📁 سكاليف">📁 سكاليف</option>
@@ -236,7 +238,7 @@ window.editAd = function(id) {
   if (!ad) return;
   document.getElementById('title').value = ad.title;
   document.getElementById('desc').value = ad.desc || '';
-  document.getElementById('category').value = ad.category || '💼 خدمات أخرى';
+  document.getElementById('category').value = ad.category || '⭐ شامل (كل الخدمات)';
   document.getElementById('price').value = ad.price || '';
   document.getElementById('link').value = ad.link || '';
   
@@ -281,7 +283,7 @@ async function loadAds() {
       <h3>
         <div>
           <span>${esc(ad.title)}</span>
-          <span class="cat-badge">${esc(ad.category || '💼 خدمات أخرى')}</span>
+          <span class="cat-badge">${esc(ad.category || '⭐ شامل')}</span>
         </div>
         <span class="views-badge">👁️ ${ad.views || 0}</span>
       </h3>
@@ -297,7 +299,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = ` هل لديكي التزامات وواجبات جامعية :\n${url}`;
+  const text = `  مضغوط ولديكي التزامات وواجبات جامعية:\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
