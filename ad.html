@@ -9,21 +9,17 @@
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:linear-gradient(135deg,#075E54,#128C7E);min-height:100vh;padding:16px;display:flex;align-items:center;justify-content:center}
   .card{background:#fff;border-radius:16px;padding:30px;max-width:95%;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);border-top:8px solid #C9A227;margin: auto}
-  
   .gallery { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 16px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
   .gallery img { height: 200px; border-radius: 12px; object-fit: cover; scroll-snap-align: start; flex-shrink: 0;}
-  
   h1{color:#075E54;margin-bottom:12px;font-size:22px}
   .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
   .desc{color:#333;line-height:1.7;margin:12px 0;white-space:pre-wrap}
   .btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;background:#25D366;color:#fff}
   .btn:hover{background:#128C7E}
-  
   .files-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 16px; }
   .files-section h3 { font-size: 16px; color: #333; margin-bottom: 8px; }
-  .file-link { display: block; background: #f4f4f4; color: #333; text-decoration: none; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; border: 1px solid #ddd; }
+  .file-link { display: block; background: #f4f4f4; color: #333; text-decoration: none; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; border: 1px solid #ddd; text-align: center;}
   .file-link:hover { background: #e0e0e0; }
-
   .error{text-align:center;padding:40px 20px}
   .error h1{color:#e74c3c}
   .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
@@ -35,7 +31,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig, DEFAULT_WHATSAPP } from './config.js';
 
 const app = initializeApp(firebaseConfig);
@@ -51,11 +47,17 @@ if (!id) {
 
 async function loadAd() {
   try {
-    const snap = await getDoc(doc(db, 'ads', id));
+    const docRef = doc(db, 'ads', id);
+    const snap = await getDoc(docRef);
+    
     if (!snap.exists()) {
       content.innerHTML = '<div class="card error"><h1>🚫 هذا الإعلان لم يعد متاحًا</h1><p style="margin-top:12px;color:#666">قد يكون صاحبه حذفه</p><p class="signature">✦ الزهراوي للإعلانات ✦</p></div>';
       return;
     }
+
+    // زيادة عداد المشاهدات بمقدار 1
+    updateDoc(docRef, { views: increment(1) }).catch(() => {});
+
     const ad = snap.data();
     
     let imagesHtml = "";
@@ -69,7 +71,7 @@ async function loadAd() {
     if (ad.documents && ad.documents.length > 0) {
       filesHtml = `<div class="files-section">
         <h3>📎 المرفقات (اضغط للتحميل):</h3>
-        ${ad.documents.map(f => `<a href="${f.url}" target="_blank" class="file-link">📄 ${esc(f.name)}</a>`).join('')}
+        ${ad.documents.map(f => `<a href="${f.url}" target="_blank" class="file-link">${esc(f.name)}</a>`).join('')}
       </div>`;
     }
 
