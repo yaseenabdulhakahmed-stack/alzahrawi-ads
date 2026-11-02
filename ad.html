@@ -48,7 +48,6 @@ const db = getFirestore(app);
 const id = new URLSearchParams(location.search).get('id');
 const content = document.getElementById('content');
 
-// ✅ تم تحديث الرقم الصحيح هنا
 const MY_PHONE = "966577862430"; 
 
 const allCategories = [
@@ -96,8 +95,18 @@ async function loadAd() {
       ${allCategories.map(cat => `<a href="https://wa.me/${MY_PHONE}?text=${encodeURIComponent('مرحباً، أريد خدمة ' + cat)}" class="cat-link" target="_blank">${cat}</a>`).join('')}
     </div>`;
 
-    const currentCategory = ad.category || 'خدمات';
-    const mainWhatsappLink = `https://wa.me/${MY_PHONE}?text=${encodeURIComponent('مرحباً، أريد خدمة ' + currentCategory)}`;
+    const currentCategory = ad.category || '⭐ شامل (كل الخدمات)';
+    
+    // التحقق مما إذا كان الإعلان شاملاً أم قسماً محدداً
+    let mainBtnText = "📞 اطلب هذا القسم الآن";
+    let mainMsg = 'مرحباً، أريد خدمة ' + currentCategory;
+    
+    if (currentCategory.includes("شامل")) {
+      mainBtnText = "📞 تواصل معنا الآن للطلب";
+      mainMsg = 'مرحباً، أريد الاستفسار عن خدماتكم الأكاديمية';
+    }
+
+    const mainWhatsappLink = `https://wa.me/${MY_PHONE}?text=${encodeURIComponent(mainMsg)}`;
 
     content.innerHTML = `<div class="card">
       ${imagesHtml}
@@ -107,7 +116,7 @@ async function loadAd() {
       <div class="desc">${esc(ad.desc||'')}</div>
       ${filesHtml}
       
-      <a href="${mainWhatsappLink}" class="btn" target="_blank">📞 اطلب هذا القسم الآن</a>
+      <a href="${mainWhatsappLink}" class="btn" target="_blank">${mainBtnText}</a>
       
       <div class="section-title">👇 أو اختر خدمة أخرى للتواصل المباشر 👇</div>
       ${categoriesHtml}
