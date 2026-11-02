@@ -16,17 +16,14 @@
   .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
   .desc{color:#333;line-height:1.7;margin:12px 0;white-space:pre-wrap}
   
-  /* زر التواصل الرئيسي */
   .btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;background:#25D366;color:#fff; font-size:16px;}
   .btn:hover{background:#128C7E}
   
-  /* تنسيقات شبكة الأقسام */
   .categories-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
   .cat-link { display: block; background: #f0f2f5; color: #075E54; text-align: center; padding: 12px 5px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px; border: 1px solid #ddd; transition: 0.3s; }
   .cat-link:hover { background: #25D366; color: #fff; }
   .section-title { text-align: center; color: #555; font-size: 14px; margin-top: 25px; margin-bottom: 10px; border-top: 1px dashed #ccc; padding-top: 15px;}
 
-  /* تنسيقات المرفقات */
   .files-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 16px; }
   .files-section h3 { font-size: 16px; color: #333; margin-bottom: 8px; }
   .file-link { display: block; background: #f4f4f4; color: #333; text-decoration: none; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; border: 1px solid #ddd; text-align: center;}
@@ -51,8 +48,8 @@ const db = getFirestore(app);
 const id = new URLSearchParams(location.search).get('id');
 const content = document.getElementById('content');
 
-// رقم الواتساب السعودي الخاص بك
-const MY_PHONE = "966574205007"; 
+// ✅ تم تحديث الرقم الصحيح هنا
+const MY_PHONE = "966577862430"; 
 
 const allCategories = [
   "📝 اختبارات", "📚 واجبات", "📁 سكاليف", "🎓 مشاريع تخرج", 
@@ -95,12 +92,10 @@ async function loadAd() {
       </div>`;
     }
 
-    // بناء شبكة الأقسام مع تمرير اسم القسم في رسالة الواتساب
     let categoriesHtml = `<div class="categories-grid">
       ${allCategories.map(cat => `<a href="https://wa.me/${MY_PHONE}?text=${encodeURIComponent('مرحباً، أريد خدمة ' + cat)}" class="cat-link" target="_blank">${cat}</a>`).join('')}
     </div>`;
 
-    // زر التواصل الرئيسي يرسل اسم القسم الموجود في الإعلان
     const currentCategory = ad.category || 'خدمات';
     const mainWhatsappLink = `https://wa.me/${MY_PHONE}?text=${encodeURIComponent('مرحباً، أريد خدمة ' + currentCategory)}`;
 
