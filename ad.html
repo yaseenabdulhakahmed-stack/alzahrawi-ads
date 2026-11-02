@@ -12,6 +12,7 @@
   .gallery { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 16px; padding-bottom: 5px; scroll-snap-type: x mandatory; }
   .gallery img { height: 200px; border-radius: 12px; object-fit: cover; scroll-snap-align: start; flex-shrink: 0;}
   h1{color:#075E54;margin-bottom:12px;font-size:22px}
+  .cat-badge { display:inline-block; background:#3498db; color:#fff; padding:4px 12px; border-radius:20px; font-size:14px; margin-bottom:12px; font-weight:bold;}
   .price{color:#C9A227;font-weight:bold;font-size:22px;margin:12px 0;text-align:center;background:#fef9e7;padding:10px;border-radius:8px}
   .desc{color:#333;line-height:1.7;margin:12px 0;white-space:pre-wrap}
   .btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;background:#25D366;color:#fff}
@@ -55,7 +56,6 @@ async function loadAd() {
       return;
     }
 
-    // زيادة عداد المشاهدات بمقدار 1
     updateDoc(docRef, { views: increment(1) }).catch(() => {});
 
     const ad = snap.data();
@@ -77,6 +77,7 @@ async function loadAd() {
 
     content.innerHTML = `<div class="card">
       ${imagesHtml}
+      <span class="cat-badge">${esc(ad.category || '💼 خدمات أخرى')}</span>
       <h1>${esc(ad.title)}</h1>
       ${ad.price ? `<div class="price">💰 ${esc(ad.price)} ر.س</div>` : ''}
       <div class="desc">${esc(ad.desc||'')}</div>
