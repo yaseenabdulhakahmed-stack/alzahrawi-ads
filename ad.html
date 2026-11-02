@@ -33,6 +33,10 @@
   .error h1{color:#e74c3c}
   .signature{text-align:center;color:#C9A227;font-size:12px;margin-top:20px;font-weight:bold}
   .loading{color:#fff;font-size:18px;text-align:center}
+  
+  /* زر إعادة المحاولة */
+  .retry-btn { background: #C9A227; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; font-family: inherit; width: 100%; }
+  .retry-btn:hover { background: #a8861f; }
 </style>
 </head>
 <body>
@@ -97,7 +101,6 @@ async function loadAd() {
 
     const currentCategory = ad.category || '⭐ شامل (كل الخدمات)';
     
-    // التحقق مما إذا كان الإعلان شاملاً أم قسماً محدداً
     let mainBtnText = "📞 اطلب هذا القسم الآن";
     let mainMsg = 'مرحباً، أريد خدمة ' + currentCategory;
     
@@ -124,7 +127,13 @@ async function loadAd() {
       <p class="signature">✦ الزهراوي للإعلانات ✦</p>
     </div>`;
   } catch(e) {
-    content.innerHTML = '<div class="card error"><h1>خطأ</h1><p>'+esc(e.message)+'</p></div>';
+    // هنا قمنا بتعديل رسالة الخطأ لتصبح رسالة عربية واضحة مع زر إعادة المحاولة
+    content.innerHTML = `<div class="card error">
+      <h1>📡 تعذر الاتصال</h1>
+      <p style="margin-top:12px;color:#666;line-height:1.6;">يبدو أن هناك ضعفاً في الاتصال بالإنترنت، أو أن الإعلان تم حذفه. يرجى التأكد من اتصالك والمحاولة مرة أخرى.</p>
+      <button class="retry-btn" onclick="location.reload()">🔄 إعادة المحاولة</button>
+      <p class="signature" style="margin-top:20px;">✦ الزهراوي للإعلانات ✦</p>
+    </div>`;
   }
 }
 function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
