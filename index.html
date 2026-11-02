@@ -13,7 +13,8 @@
   h1{color:#075E54;margin-bottom:20px;text-align:center;font-size:22px}
   h1 span{color:#C9A227}
   h2{color:#128C7E;margin-bottom:12px;font-size:17px}
-  input,textarea,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit}
+  input,textarea,select,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit}
+  select{background-color:#fff; cursor:pointer;}
   input[type="file"]{background:#f9f9f9; cursor:pointer;}
   textarea{min-height:80px;resize:vertical}
   button{background:#C9A227;color:#fff;border:none;font-weight:bold;cursor:pointer}
@@ -24,9 +25,12 @@
   button.share:hover{background:#128C7E}
   button.copy{background:#075E54}
   button.edit{background:#3498db}
+  .filter-box { display:flex; gap:10px; margin-bottom:12px; }
+  .filter-box select { margin:0; }
   .ad-item{background:#f9f9f9;padding:12px;border-radius:8px;margin-bottom:10px;border-right:4px solid #C9A227}
   .ad-item h3{color:#075E54;margin-bottom:4px;font-size:16px; display:flex; justify-content:space-between; align-items:center;}
   .views-badge{font-size:12px; color:#C9A227; font-weight:normal; background:#fef9e7; padding:2px 8px; border-radius:10px;}
+  .cat-badge{font-size:12px; color:#fff; background:#3498db; padding:2px 8px; border-radius:10px; font-weight:normal; margin-left:5px;}
   .ad-item p{color:#666;font-size:13px;margin-bottom:8px;word-break:break-all}
   .ad-actions{display:flex;gap:6px;flex-wrap:wrap}
   .ad-actions button{padding:8px;font-size:13px;margin:0;flex:1;min-width:70px}
@@ -59,6 +63,22 @@
       <h2 id="formTitle">➕ إعلان جديد</h2>
       <input type="text" id="title" placeholder="عنوان الإعلان (مثال: متجر أحمد للعطور)">
       <textarea id="desc" placeholder="وصف الإعلان"></textarea>
+      
+      <!-- قائمة التصنيفات المخصصة -->
+      <select id="category">
+        <option value="📝 اختبارات">📝 اختبارات</option>
+        <option value="📚 واجبات">📚 واجبات</option>
+        <option value="📁 سكاليف">📁 سكاليف</option>
+        <option value="🎓 مشاريع تخرج">🎓 مشاريع تخرج</option>
+        <option value="🔍 بحوثات">🔍 بحوثات</option>
+        <option value="📊 عروض تقديمية">📊 عروض تقديمية</option>
+        <option value="📄 تقارير">📄 تقارير</option>
+        <option value="📋 استبيانات">📋 استبيانات</option>
+        <option value="🎨 تصاميم">🎨 تصاميم</option>
+        <option value="🎬 فيديوهات">🎬 فيديوهات</option>
+        <option value="💼 خدمات أخرى">💼 خدمات أخرى</option>
+      </select>
+
       <input type="text" id="price" placeholder="السعر (بالريال السعودي - اختياري)">
       <input type="url" id="link" placeholder="رابط التواصل (https://wa.me/967... أو https://maps...)">
       
@@ -75,6 +95,25 @@
 
     <div class="card">
       <h2>📋 إعلاناتي (<span id="count">0</span>)</h2>
+      
+      <!-- فلترة الإعلانات حسب القسم -->
+      <div class="filter-box">
+        <select id="filterCategory" onchange="loadAds()">
+          <option value="all">كل الأقسام</option>
+          <option value="📝 اختبارات">📝 اختبارات</option>
+          <option value="📚 واجبات">📚 واجبات</option>
+          <option value="📁 سكاليف">📁 سكاليف</option>
+          <option value="🎓 مشاريع تخرج">🎓 مشاريع تخرج</option>
+          <option value="🔍 بحوثات">🔍 بحوثات</option>
+          <option value="📊 عروض تقديمية">📊 عروض تقديمية</option>
+          <option value="📄 تقارير">📄 تقارير</option>
+          <option value="📋 استبيانات">📋 استبيانات</option>
+          <option value="🎨 تصاميم">🎨 تصاميم</option>
+          <option value="🎬 فيديوهات">🎬 فيديوهات</option>
+          <option value="💼 خدمات أخرى">💼 خدمات أخرى</option>
+        </select>
+      </div>
+
       <div id="list"></div>
     </div>
     <p class="signature">✦ الزهراوي للإعلانات ✦</p>
@@ -133,6 +172,7 @@ window.saveAd = async function() {
   const title = document.getElementById('title').value.trim();
   const imageFiles = document.getElementById('imageFiles').files;
   const docLinksText = document.getElementById('documentLink').value.trim();
+  const category = document.getElementById('category').value;
   
   if (!title) { showMsg('العنوان مطلوب', 'error'); return; }
   showMsg('⏳ جاري معالجة الصور وحفظ الإعلان...', 'success');
@@ -149,7 +189,6 @@ window.saveAd = async function() {
       imagesArray = oldAd.images || (oldAd.image ? [oldAd.image] : []);
     }
 
-    // استخراج الروابط من المساحة النصية
     let docsArray = [];
     if (docLinksText) {
       const links = docLinksText.split('\n');
@@ -165,6 +204,7 @@ window.saveAd = async function() {
     const adData = {
       title: title,
       desc: document.getElementById('desc').value.trim(),
+      category: category,
       price: document.getElementById('price').value.trim(),
       link: document.getElementById('link').value.trim(),
       images: imagesArray,
@@ -178,7 +218,7 @@ window.saveAd = async function() {
       cancelEdit();
     } else {
       adData.createdAt = serverTimestamp();
-      adData.views = 0; // تصفير العداد عند الإنشاء
+      adData.views = 0;
       await addDoc(collection(db, 'ads'), adData);
       showMsg('✅ تم حفظ الإعلان بنجاح', 'success');
       ['title','desc','price','link','documentLink'].forEach(id => document.getElementById(id).value = '');
@@ -196,10 +236,10 @@ window.editAd = function(id) {
   if (!ad) return;
   document.getElementById('title').value = ad.title;
   document.getElementById('desc').value = ad.desc || '';
+  document.getElementById('category').value = ad.category || '💼 خدمات أخرى';
   document.getElementById('price').value = ad.price || '';
   document.getElementById('link').value = ad.link || '';
   
-  // دمج الروابط في المساحة النصية عند التعديل
   if(ad.documents && ad.documents.length > 0) {
      document.getElementById('documentLink').value = ad.documents.map(d => d.url).join('\n');
   } else {
@@ -227,15 +267,22 @@ async function loadAds() {
   allAds = [];
   snap.forEach(d => allAds.push({ id: d.id, ...d.data() }));
   allAds.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
-  document.getElementById('count').textContent = allAds.length;
+  
+  const filterValue = document.getElementById('filterCategory').value;
+  const filteredAds = filterValue === 'all' ? allAds : allAds.filter(ad => ad.category === filterValue);
+
+  document.getElementById('count').textContent = filteredAds.length;
   
   const list = document.getElementById('list');
-  if (!allAds.length) { list.innerHTML = '<p style="color:#999;text-align:center">لا توجد إعلانات بعد</p>'; return; }
+  if (!filteredAds.length) { list.innerHTML = '<p style="color:#999;text-align:center">لا توجد إعلانات بعد</p>'; return; }
   
-  list.innerHTML = allAds.map(ad => `
+  list.innerHTML = filteredAds.map(ad => `
     <div class="ad-item">
       <h3>
-        <span>${esc(ad.title)}</span>
+        <div>
+          <span>${esc(ad.title)}</span>
+          <span class="cat-badge">${esc(ad.category || '💼 خدمات أخرى')}</span>
+        </div>
         <span class="views-badge">👁️ ${ad.views || 0}</span>
       </h3>
       <p>${esc(ad.desc||'')}</p>
@@ -250,7 +297,7 @@ async function loadAds() {
 
 window.shareAd = function(id) {
   const url = `${APP_URL}/ad.html?id=${id}`;
-  const text = `  هل لديكي التزامات جامعية وواجبات:\n${url}`;
+  const text = ` هل لديكي التزامات وواجبات جامعية :\n${url}`;
   if (navigator.share) navigator.share({ text, url }).catch(()=>{});
   else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
